@@ -1,19 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ivy-licence
+data:
+  IVY_LICENCE: |
+    [Begin Licence]
+    #Licence for AxonIvy Axon Ivy Engine (Standard Edition)
+    #Mon Dec 30 16:49:24 CET 2024
+    licence.keyversion=axonivy/13000
+    licence.number=XLSSE-1941-841F-8D7P
+    licence.type=Standard Edition
+    licence.valid.until=2027-11-03
+    licencee.individual=www.axonivy.com
+    licencee.organisation=Axon Ivy AG
+    product.name=Axon Ivy Engine
+    public.urls=localhost,*.app.github.dev
+    server.sessions.limit=2
+    server.users.limit=4
+    [End Licence]
+    [Begin Signature]
+    MCwCFBuiyIBv+GF8HXRfJoiqf5WpJZNrAhQjzeTtYUGthXtTw/JvkMnrVjfiVA==
+    [End Signature]
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: axonivy
+  name: ivy
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: axonivy
+      app: ivy
   template:
     metadata:
       labels:
-        app: axonivy
+        app: ivy
     spec:
       containers:
-        - name: axonivy
+        - name: ivy
           image: axonivy/axonivy-engine:dev
           ports:
             - containerPort: 8080
@@ -48,3 +74,18 @@ spec:
       #      items:
       #        - key: IVY_LICENCE
       #          path: licence.lic
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ivy
+spec:
+  selector:
+    app: ivy
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: NodePort  # Or use LoadBalancer with minikube tunnel

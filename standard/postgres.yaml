@@ -1,3 +1,25 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-secret
+type: Opaque
+data:
+  POSTGRES_USER: YWRtaW4=         # "admin"
+  POSTGRES_PASSWORD: YWRtaW5wYXNz # "adminpass"
+  POSTGRES_DB: bXlkYg==           # "mydb"
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+data:
+  POSTGRES_PORT: "5432"
+
+
+---
+
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -46,3 +68,17 @@ spec:
         resources:
           requests:
             storage: 5Gi
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  ports:
+    - port: 5432
+      name: postgres
+  clusterIP: None
+  selector:
+    app: postgres
