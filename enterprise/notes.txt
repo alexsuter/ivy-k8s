@@ -1,0 +1,6 @@
+kubectl create deployment hello-ivy --image=axonivy/axonivy-engine:dev
+kubectl expose deployment hello-ivy --type=NodePort --port=8080
+
+
+kubectl expose deployment hello-ivy --type=LoadBalancer --port=8080
+
