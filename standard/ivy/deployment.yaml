@@ -49,22 +49,13 @@ spec:
             - name: ivy_SearchEngine_ExternalServer_Url
               value: http://opensearch:9200
             
-            #- name: ivy_SearchEngine_ExternalServer_UserName
-            #  value: admin
-
-            #- name: ivy_SearchEngine_ExternalServer_Password
-            #  value: BaumHaus$?1234
-
-#            - name: ivy_Licence
-#              valueFrom: 
-#                configMapKeyRef:
-#                  name: ivy-licence
-#                  key: IVY_LICENCE
+            - name: ivy_Licence
+              valueFrom: 
+                configMapKeyRef:
+                  name: ivy-licence
+                  key: IVY_LICENCE
 
           volumeMounts:
-            - name: licence-volume
-              mountPath: /ivy/configuration
-
             - name: ivy-data
               mountPath: /ivy/data
 
@@ -80,9 +71,3 @@ spec:
           persistentVolumeClaim:
             claimName: ivy-applications
 
-        - name: licence-volume
-          configMap:
-            name: ivy-licence
-            items:
-              - key: IVY_LICENCE
-                path: licence.lic
