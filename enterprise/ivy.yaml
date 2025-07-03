@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: ivy-licence
+  name: ivy-config
 data:
-  IVY_LICENCE: |
+  LICENCE: |
     [Begin Licence]
     #Licence for AxonIvy Axon Ivy Engine (Enterprise Edition)
     #Thu Jul 03 11:43:58 CEST 2025
@@ -23,6 +23,52 @@ data:
     MCwCFARlfvRkU3gpjodGPST63oPc7J0tAhQkMeLIzHEKh+8sknIet3wN0wNjIQ==
     [End Signature]
 
+  LOG4J2: |
+    <Configuration>
+      <Appenders>
+        <Console name="ConsoleLog" target="SYSTEM_OUT">
+          <PatternLayout pattern="${pattern}" />
+          <ThresholdFilter level="debug" />
+        </Console>
+      </Appenders>
+      <Loggers>
+        <Logger name="org.jgroups" level="debug"/>
+        <Logger name="ch.ivyteam.ivy.cluster" level="debug"/>
+      </Loggers>
+    </Configuration>
+
+  JGROUPS: |
+    <config xmlns="urn:org:jgroups"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="urn:org:jgroups http://www.jgroups.org/schema/jgroups.xsd"
+        >
+    <UDP
+         mcast_port="${jgroups.udp.mcast_port:45588}"
+         thread_pool.min_threads="0"
+         thread_pool.max_threads="200"
+         thread_pool.keep_alive_time="30s"/>
+    <RED/>
+    <!-- dns_address="10.96.0.10" -->
+    <dns.DNS_PING        
+        dns_query="ivy.sandbox.svc.cluster.local"/>
+    <MERGE3 max_interval="30s"
+            min_interval="10s"/>
+    <FD_SOCK2/>
+    <FD_ALL3/>
+    <VERIFY_SUSPECT2 timeout="1.5s"  />
+    <BARRIER />
+    <pbcast.NAKACK2 xmit_interval="0.5s"/>
+    <UNICAST3 xmit_interval="0.5s" />
+    <pbcast.STABLE desired_avg_gossip="50s"
+                   max_bytes="4M"/>
+    <pbcast.GMS print_local_addr="true" join_timeout="1s"/>
+    <MFC max_credits="4M"
+         min_threshold="0.4"/>
+    <UFC max_credits="4M"
+             min_threshold="0.4"/>
+    <FRAG2 frag_size="60K"  />
+    <pbcast.STATE_TRANSFER />
+    </config>
 ---
 
 apiVersion: v1
@@ -80,6 +126,13 @@ spec:
           image: axonivy/axonivy-engine:dev
           ports:
             - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /system/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            failureThreshold: 3
           env:
             - name: ivy_Administrators_admin_Password
               valueFrom:
@@ -118,7 +171,7 @@ spec:
 #                  key: IVY_LICENCE
 
           volumeMounts:
-            - name: licence-volume
+            - name: config-volume
               mountPath: /ivy/configuration
 
             - name: ivy-data
@@ -136,13 +189,16 @@ spec:
           persistentVolumeClaim:
             claimName: ivy-applications
 
-        - name: licence-volume
+        - name: config-volume
           configMap:
-            name: ivy-licence
+            name: ivy-config
             items:
-              - key: IVY_LICENCE
+              - key: LICENCE
                 path: licence.lic
-
+              - key: JGROUPS
+                path: jgroups.xml
+              - key: LOG4J2
+                path: log4j2.xml
 
 ---
 
@@ -151,12 +207,13 @@ kind: Service
 metadata:
   name: ivy
 spec:
+  clusterIP: None
   selector:
     app: ivy
   ports:
     - port: 8080
       targetPort: 8080
-  type: NodePort
+  #type: NodePort
 
 ---
 
@@ -165,9 +222,13 @@ kind: Ingress
 metadata:
   name: ivy-ingress
   annotations:
+    #nginx.ingress.kubernetes.io/affinity: "ClientIP"
     nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/affinity-mode: "persistent"
     nginx.ingress.kubernetes.io/session-cookie-name: "christian-loves-sticky-sessions"
     nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+    nginx.ingress.kubernetes.io/session-cookie-path: "/"
+    nginx.ingress.kubernetes.io/session-cookie-domain: "raccoon.local"
 spec:
   rules:
     - host: raccoon.local
