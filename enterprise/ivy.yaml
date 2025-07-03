@@ -1,0 +1,182 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ivy-licence
+data:
+  IVY_LICENCE: |
+    [Begin Licence]
+    #Licence for AxonIvy Axon Ivy Engine (Enterprise Edition)
+    #Thu Jul 03 11:43:58 CEST 2025
+    licence.keyversion=axonivy/13000
+    licence.number=XLSEE-197C-FABE-480C
+    licence.type=Enterprise Edition
+    licence.valid.until=2027-11-03
+    licencee.individual=www.axonivy.com
+    licencee.organisation=Axon Ivy AG
+    product.name=Axon Ivy Engine
+    public.urls=localhost,*.app.github.dev,raccoon.local
+    server.nodes.limit=5
+    server.sessions.limit=2
+    server.users.limit=4
+    [End Licence]
+    [Begin Signature]
+    MCwCFARlfvRkU3gpjodGPST63oPc7J0tAhQkMeLIzHEKh+8sknIet3wN0wNjIQ==
+    [End Signature]
+
+---
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ivy-secret
+type: Opaque
+stringData:
+  ADMIN_PASSWORD: "1111"
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ivy-data
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ivy-applications
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Gi
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ivy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ivy
+  template:
+    metadata:
+      labels:
+        app: ivy
+    spec:
+      containers:
+        - name: ivy
+          image: axonivy/axonivy-engine:dev
+          ports:
+            - containerPort: 8080
+          env:
+            - name: ivy_Administrators_admin_Password
+              valueFrom:
+                secretKeyRef:
+                  name: ivy-secret
+                  key: ADMIN_PASSWORD
+
+            - name: ivy_SystemDb_Url
+              value: jdbc:postgresql://postgres:5432/mydb
+
+            - name: ivy_SystemDb_UserName
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: USER
+
+            - name: ivy_SystemDb_Password
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: PASSWORD
+            
+            - name: ivy_SearchEngine_ExternalServer_Url
+              value: http://opensearch:9200
+            
+            #- name: ivy_SearchEngine_ExternalServer_UserName
+            #  value: admin
+
+            #- name: ivy_SearchEngine_ExternalServer_Password
+            #  value: BaumHaus$?1234
+
+#            - name: ivy_Licence
+#              valueFrom: 
+#                configMapKeyRef:
+#                  name: ivy-licence
+#                  key: IVY_LICENCE
+
+          volumeMounts:
+            - name: licence-volume
+              mountPath: /ivy/configuration
+
+            - name: ivy-data
+              mountPath: /ivy/data
+
+            - name: ivy-applications
+              mountPath: /ivy/applications
+
+      volumes:
+        - name: ivy-data
+          persistentVolumeClaim:
+            claimName: ivy-data
+
+        - name: ivy-applications
+          persistentVolumeClaim:
+            claimName: ivy-applications
+
+        - name: licence-volume
+          configMap:
+            name: ivy-licence
+            items:
+              - key: IVY_LICENCE
+                path: licence.lic
+
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: ivy
+spec:
+  selector:
+    app: ivy
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: NodePort
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ivy-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "christian-loves-sticky-sessions"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+spec:
+  rules:
+    - host: raccoon.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ivy
+                port:
+                  number: 8080
