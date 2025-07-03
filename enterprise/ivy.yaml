@@ -5,21 +5,22 @@ metadata:
 data:
   IVY_LICENCE: |
     [Begin Licence]
-    #Licence for AxonIvy Axon Ivy Engine (Standard Edition)
-    #Mon Dec 30 16:49:24 CET 2024
+    #Licence for AxonIvy Axon Ivy Engine (Enterprise Edition)
+    #Thu Jul 03 11:43:58 CEST 2025
     licence.keyversion=axonivy/13000
-    licence.number=XLSSE-1941-841F-8D7P
-    licence.type=Standard Edition
+    licence.number=XLSEE-197C-FABE-480C
+    licence.type=Enterprise Edition
     licence.valid.until=2027-11-03
     licencee.individual=www.axonivy.com
     licencee.organisation=Axon Ivy AG
     product.name=Axon Ivy Engine
-    public.urls=localhost,*.app.github.dev
+    public.urls=localhost,*.app.github.dev,raccoon.local
+    server.nodes.limit=5
     server.sessions.limit=2
     server.users.limit=4
     [End Licence]
     [Begin Signature]
-    MCwCFBuiyIBv+GF8HXRfJoiqf5WpJZNrAhQjzeTtYUGthXtTw/JvkMnrVjfiVA==
+    MCwCFARlfvRkU3gpjodGPST63oPc7J0tAhQkMeLIzHEKh+8sknIet3wN0wNjIQ==
     [End Signature]
 
 ---
@@ -156,3 +157,26 @@ spec:
     - port: 8080
       targetPort: 8080
   type: NodePort
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ivy-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/affinity: "cookie"
+    nginx.ingress.kubernetes.io/session-cookie-name: "christian-loves-sticky-sessions"
+    nginx.ingress.kubernetes.io/session-cookie-hash: "sha1"
+spec:
+  rules:
+    - host: raccoon.local
+      http:
+        paths:
+          - pathType: Prefix
+            path: /
+            backend:
+              service:
+                name: ivy
+                port:
+                  number: 8080
