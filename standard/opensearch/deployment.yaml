@@ -27,24 +27,3 @@ spec:
               value: "BaumHaus$?1234"
             - name: OPENSEARCH_JAVA_OPTS
               value: "-Xms512m -Xmx512m"
-       #   resources:
-       #     limits:
-       #       memory: "1Gi"
-       #       cpu: "1"
-       #     requests:
-       #       memory: "512Mi"
-       #       cpu: "500m"
-
----
-
-apiVersion: v1
-kind: Service
-metadata:
-  name: opensearch
-spec:
-  type: NodePort
-  ports:
-    - port: 9200
-      name: opensearch
-  selector:
-    app: opensearch
