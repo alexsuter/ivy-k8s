@@ -1,28 +1,21 @@
 # Axon Ivy Engine Standard
 
-## System Database
+```bash
+# deploy everything
+kubectl apply -k .
 
-```
-kubectl apply -f postgres.yaml
-```
-
-```
-kubectl delete -f postgres.yaml
+# only ivy
+kubectl apply -k ivy
 ```
 
-## Axon Ivy Engine
-
-```
-kubectl apply -f ivy.yaml
-```
-
-```
-kubectl delete -f ivy.yaml
+```bash
+# remove everything
+kubectl delete -k .
 ```
 
 ## Access with port forwarding
 
-```
+```bash
 kubectl port-forward service/ivy 8080:8080
 ```
 
