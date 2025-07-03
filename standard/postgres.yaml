@@ -3,10 +3,9 @@ kind: Secret
 metadata:
   name: postgres-secret
 type: Opaque
-data:
-  POSTGRES_USER: YWRtaW4=         # "admin"
-  POSTGRES_PASSWORD: YWRtaW5wYXNz # "adminpass"
-  POSTGRES_DB: bXlkYg==           # "mydb"
+stringData:
+  USER: admin
+  PASSWORD: "1234"
 
 ---
 
@@ -15,8 +14,8 @@ kind: ConfigMap
 metadata:
   name: postgres-config
 data:
-  POSTGRES_PORT: "5432"
-
+  DB: ivy
+  PORT: "5432"
 
 ---
 
@@ -25,7 +24,7 @@ kind: StatefulSet
 metadata:
   name: postgres
 spec:
-  serviceName: "postgres"
+  serviceName: postgres
   replicas: 1
   selector:
     matchLabels:
@@ -37,7 +36,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:15
+          image: postgres:17
           ports:
             - containerPort: 5432
               name: postgres
@@ -46,28 +45,28 @@ spec:
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  key: POSTGRES_USER
+                  key: USER
             - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: postgres-secret
-                  key: POSTGRES_PASSWORD
+                  key: PASSWORD
             - name: POSTGRES_DB
               valueFrom:
-                secretKeyRef:
-                  name: postgres-secret
-                  key: POSTGRES_DB
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB
           volumeMounts:
-            - name: pgdata
+            - name: postgres-data
               mountPath: /var/lib/postgresql/data
   volumeClaimTemplates:
     - metadata:
-        name: pgdata
+        name: postgres-data
       spec:
         accessModes: ["ReadWriteOnce"]
         resources:
           requests:
-            storage: 5Gi
+            storage: 1Gi
 
 ---
 
